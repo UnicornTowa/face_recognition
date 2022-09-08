@@ -1,6 +1,4 @@
 #include "facerec.h"
-using namespace std;
-
 
 int main(){
     int nop = 500;
