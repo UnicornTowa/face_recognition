@@ -9,3 +9,5 @@ n - number of picture of person "s" to compare with others first pictures (2 to 
 
 in result: <br />
 A smaller number means a greater match so if the "s" number is the smallest - program made a correct choice
+
+AT&amp;T Database of Faces should be in the same directory as executable
