@@ -1,0 +1,3 @@
+C:/Users/tosha/CLionProjects/face_rec_double/cmake-build-debug/CMakeFiles/face_rec_double.dir
+C:/Users/tosha/CLionProjects/face_rec_double/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/tosha/CLionProjects/face_rec_double/cmake-build-debug/CMakeFiles/rebuild_cache.dir
