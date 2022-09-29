@@ -5,4 +5,4 @@ C++ program that recognises faces from AT&amp;T Database of Faces
 ### 1. Random N pixels <br />
 ### 2. Histogram (multiple versions) <br />
 ### 3. Compressing <br />
-### (4). Different com binations <br />
+### (4). Different combinations <br />
