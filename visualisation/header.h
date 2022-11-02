@@ -14,10 +14,23 @@
 using namespace sf;
 using namespace std;
 
-//// Common funcs
+/// Каждый метод имеет сходные фунуции
+/// make_base - создание "базы" по эталонам (приписка multi подчеркивает наличие двух эталонов)
+/// get_result - сравнение тестового изображения с каждым в базе,
+/// и получение вектора состоящего из "отличий" от каждого эталона
 
-int** picture_to_matrix_int(int s, int n);
-long ** picture_to_matrix_long(int s, int n);
+
+/// check_ans - выбор минимального "отличия" в качестве "ответа"
+/// calculate_difference - сумма модулей покомпонентных разностей двух векторов
+/// get_acc - получение точности
+
+
+
+
+//// Common
+
+int** picture_to_matrix_int(int s, int n);    ///  int matrix -> long matrix
+long ** picture_to_matrix_long(int s, int n); /// .pgm to matrix
 template <typename T>
 T calculate_difference(T* first, T* second, int len) {
     T diff = 0;
@@ -33,7 +46,7 @@ void delete_matrix(T** matrix) {
         delete [] matrix[i];
     }
     delete [] matrix;
-}
+} /// Удаление матрицы (освобождение памяти)
 
 template <typename T>
 int check_ans_int(const T *res, int people){
@@ -52,7 +65,7 @@ float get_acc(int mistakes, int people, int pb);
 wstring get_acc(int count, int mistakes);
 
 /// Hist
-long * return_hist_v2(long **picture, int prec);
+long * return_hist_v2(long **picture, int prec); /// Гистограмма из матрицы (улучшенный метод)
 
 long* get_result_hist(long** base, int n, int s, int people, int prec);
 
@@ -61,14 +74,14 @@ long ** make_multibase_hist(int people, int prec, int n1, int n2);
 /// Pixels
 
 /// Pixels
-pair<int, int>* choose_pixels(int num);
-int* extract_vector_of_chosen_pixels(int** matrix, pair<int, int>* pixels, int len);
+pair<int, int>* choose_pixels(int num); /// Выбор случайных пикселей
+int* extract_vector_of_chosen_pixels(int** matrix, pair<int, int>* pixels, int len); /// Вектор по выбранным пикселям
 int** make_multibase_pixels(int people, pair<int, int>*pixels, int nop, int n1, int n2);
 int* get_result_pixels (int** base, pair<int,int>*pixels, int people, int nop, int s, int n);
 
 /// Compress
 
-int** compress(int** matrix);
+int** compress(int** matrix); /// Сжатие матрицы х16
 int*** make_multibase_compress(int people, int n1, int n2);
 int calc_difference_compress(int** m1, int** m2);
 int* get_result_compress(int*** matrix_base, int n, int s, int people);
@@ -76,7 +89,8 @@ int* get_result_compress(int*** matrix_base, int n, int s, int people);
 
 
 /// Display
-struct Screen{
+struct Screen /// Структура из отображаемых объектов для удостбва визуализации
+        {
     Sprite test;
     Text test_text;
     Sprite hist;
@@ -173,7 +187,7 @@ struct Screen{
     }
 };
 
-Sprite get_sprite(int s, int n);
+Sprite get_sprite(int s, int n); /// Получение спрайта из требуемого изображения
 
-void fill_textures();
+void fill_textures(); /// Заполнить текстурами массив
 #endif //FACE_REC_DOUBLE_HEADER_H

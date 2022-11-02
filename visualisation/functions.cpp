@@ -1,8 +1,10 @@
 #include "header.h"
 
+
 ///Common
 
-long** picture_to_matrix_long(int s, int n){
+long** picture_to_matrix_long(int s, int n)
+ {
     auto ans = new long*[112];
     auto int_ans = picture_to_matrix_int(s, n);
     for (int i = 0; i < 112; i++){
@@ -16,7 +18,8 @@ long** picture_to_matrix_long(int s, int n){
     return ans;
 }
 
-int** picture_to_matrix_int(int s, int n){
+int** picture_to_matrix_int(int s, int n)
+{
     string name = "database/s" + to_string(s) + "/" + to_string(n) + ".pgm";
 
     int row = 0, col = 0, num_of_rows = 0, num_of_cols = 0;

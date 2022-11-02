@@ -5,7 +5,7 @@
 
 int main() {
 
-    RenderWindow window(VideoMode(1010, 900), "Face recognition");
+    RenderWindow window(VideoMode(1010, 900), "Face recognition"); /// Создание окна и фона
     RectangleShape background(Vector2f(1010.0f,900.0f));
     background.setFillColor(sf::Color::White);
     window.setFramerateLimit(60);
@@ -13,13 +13,13 @@ int main() {
 
 
 
-    const int people = 40;
+    const int people = 40;  /// Общие параметры
     const int first_exemplar = 3;
     const int second_exemplar = 8;
     int s = 1;
     int n = 1;
     int count = 0;
-
+    /// Параметры каждого метода
     auto base_hist = make_multibase_hist(people, 256/64, first_exemplar, second_exemplar);
     int mistakes_hist = 0;
 
@@ -29,6 +29,8 @@ int main() {
 
     auto base_compress = make_multibase_compress(people, first_exemplar, second_exemplar);
     int mistakes_compress = 0;
+
+    ///Вспомогательные параметры и объекты
 
     Screen screen = Screen();
     fill_textures();
@@ -40,7 +42,8 @@ int main() {
 
     int mistakes_vote = 0;
 
-    while (window.isOpen()){
+    while (window.isOpen()) /// Основой цикл
+    {
 
         count++;
         n++;
