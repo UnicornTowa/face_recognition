@@ -16,13 +16,8 @@ void fill_textures(){
 
 
 Sprite get_sprite(int s, int n){
-    //string name = "database/s" + to_string(s) + "/" + to_string(n) + ".pgm";
-    //auto texture = new Texture;
-    //if (!texture->loadFromFile(name, IntRect(0, 0, 92, 112)))
-    //    cerr << "Cant load texture" << endl;
-    Texture* texture = &textures[s - 1][n - 1];
     Sprite sprite;
-    sprite.setTexture(*texture);
+    sprite.setTexture(textures[s - 1][n - 1]);
     sprite.scale(Vector2f(3.0f, 3.0f));
     return sprite;
 }

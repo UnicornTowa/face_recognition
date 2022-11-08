@@ -1,22 +1,12 @@
 #include "header.h"
 
-
-///Common
-
-long** picture_to_matrix_long(int s, int n)
- {
-    auto ans = new long*[112];
-    auto int_ans = picture_to_matrix_int(s, n);
-    for (int i = 0; i < 112; i++){
-        auto temp = new long[92]();
-        for(int j = 0; j < 92; j++){
-            temp[j] = long(int_ans[i][j]);
-        }
-        ans[i] = temp;
-    }
-    delete [] int_ans;
-    return ans;
+int a = 0, b = 0, c = 0;
+void set(int _a, int _b, int _c){
+    a = _a;
+    b = _b;
+    c = _c;
 }
+///Common
 
 int** picture_to_matrix_int(int s, int n)
 {
@@ -90,18 +80,32 @@ int** picture_to_matrix_int(int s, int n)
     return pixel_value;
 }
 
-float get_acc(int mistakes, int people, int pb){
-    float acc = round(10000*(static_cast<float>((10 - pb)*people - mistakes)/static_cast<float>((10 - pb)*people)))/100;
+long **int_to_long_matrix(int** &matrix){
+    long** ans = new long*[112];
+    for (int i = 0; i < 112; i++){
+        auto temp = new long[92];
+        for(int j = 0; j < 92; j++){
+            temp[j] = long(matrix[i][j]);
+        }
+        ans[i] = temp;
+    }
+    return ans;
+}
+
+float get_acc(int mistakes, int count) {
+    float acc = round(10000*(static_cast<float>(count - mistakes) / static_cast<float>(count))) / 100;
     //float acc = round(100 * ((10 - pb) * people - static_cast<float>(mistakes)) / (10 - pb) / people * 100) / 100;
     return acc;
 }
-wstring get_acc(int count, int mistakes){
+wstring get_acc_w(int count, int mistakes){
     return wstring(to_wstring(round(10000*(static_cast<float>(count - mistakes))/static_cast<float>(count))/100), 0, 5);
 }
 
+
+
 /// Hist
 
-int get_weight(int h, int w){
+int get_weight(int h, int w){//14431
     if ((h == 1 or h == 2) and (w == 1 or w == 2)) // mid 4 sectors
         return 1;
     else if ((h == 0 or h == 3) and (w == 0 or w == 3)) // 4 corner sectors
@@ -127,23 +131,22 @@ long * return_hist_v2(long **picture, int prec){
             }
         }
     }
-    delete_matrix(picture);
     return result_v2;
 }
 
-long ** make_multibase_hist(int people, int prec, int n1, int n2){
-    long** base = new long*[people*2];
-    for(int i = 0; i < people; i++){
-        base[i] = return_hist_v2(picture_to_matrix_long(i + 1, n1), prec);
-    }
-    for(int i = 0; i < people; i++){
-        base[i + people] = return_hist_v2(picture_to_matrix_long(i + 1, n2), prec);
+long **make_multibase_hist(int people, int prec, pictures &pictures, vector<int> &exemplars) {
+    auto num_of_exemplars = exemplars.size();
+    long** base = new long*[people*num_of_exemplars];
+    for(int q = 0; q < num_of_exemplars; q++){
+        for(int i = 0; i < people; i++){
+            base[i + q * people] = return_hist_v2(pictures.get_picture(i + 1, exemplars[q]), prec);
+        }
     }
     return base;
 }
 
-long* get_result_hist(long** base, int n, int s, int people, int prec){
-    long* cur = return_hist_v2(picture_to_matrix_long(s, n), prec);
+long* get_result_hist(long** base, int n, int s, int people, int prec, pictures& pictures){
+    long* cur = return_hist_v2(pictures.get_picture(s, n), prec);
     long* result = new long[people];
     auto len = 16*256/prec;
     for(int i = 0; i < people; i++){
@@ -166,29 +169,28 @@ pair<int, int>* choose_pixels(int num) {
     return arr;
 }
 
-int* extract_vector_of_chosen_pixels(int** matrix, pair<int, int>* pixels, int len) {
-    int* vec = new int[len];
+long * extract_vector_of_chosen_pixels(long **matrix, pair<int, int>* pixels, int len) {
+    long* vec = new long[len];
     for (int i = 0; i < len; i++) {
         vec [i] = matrix[pixels[i].first][pixels[i].second];
     }
-    delete_matrix(matrix);
     return vec;
 }
 
-int** make_multibase_pixels(int people, pair<int, int>*pixels, int nop, int n1, int n2) {
-    int** base = new int*[2*people];
-    for (int i = 0; i < people; i++){
-        base[i] = extract_vector_of_chosen_pixels(picture_to_matrix_int(i + 1, n1), pixels, nop);
-    }
-    for (int i = 0; i < people; i++){
-        base[i + people] = extract_vector_of_chosen_pixels(picture_to_matrix_int(i + 1, n2), pixels, nop);
+long ** make_multibase_pixels(int people, pair<int, int> *pixels, int nop, pictures &pictures, vector<int> &exemplars) {
+    auto num_of_exemplars = exemplars.size();
+    long** base = new long*[num_of_exemplars * people];
+    for (int q = 0; q < num_of_exemplars; q++){
+        for(int i = 0; i < people; i++){
+            base[i + q * people] = extract_vector_of_chosen_pixels(pictures.get_picture(i + 1, exemplars[q]), pixels, nop);
+        }
     }
     return base;
 }
 
-int* get_result_pixels (int** base, pair<int,int>*pixels, int people, int nop, int s, int n) {
-    auto target = extract_vector_of_chosen_pixels(picture_to_matrix_int(s, n), pixels, nop);
-    int* res = new int[people]();
+long * get_result_pixels(long **base, pair<int, int> *pixels, int people, int nop, int s, int n, pictures &pictures) {
+    auto target = extract_vector_of_chosen_pixels(pictures.get_picture(s, n), pixels, nop);
+    long* res = new long[people]();
     for (int i = 0; i < people; i++){
         res[i] = calculate_difference(base[i], target, nop);
     }
@@ -198,21 +200,21 @@ int* get_result_pixels (int** base, pair<int,int>*pixels, int people, int nop, i
 
 /// Compress
 
-int*** make_multibase_compress(int people, int n1, int n2) {
-    int*** base_matrix = new int**[2*people];
-    for(int i = 0; i < people; i++){
-        base_matrix[i] = compress(picture_to_matrix_int(i + 1, n1));
-    }
-    for(int i = 0; i < people; i++){
-        base_matrix[i + people] = compress(picture_to_matrix_int(i + 1, n2));
+long *** make_multibase_compress(int people, pictures &pictures, vector<int> &exemplars) {
+    auto num_of_exemplars = exemplars.size();
+    long*** base_matrix = new long**[num_of_exemplars*people];
+    for(int q = 0; q < num_of_exemplars; q++){
+        for(int i = 0; i < people; i++){
+            base_matrix[i + q * people] = compress(pictures.get_picture(i + 1, exemplars[q]));
+        }
     }
     return base_matrix;
 }
 
-int** compress(int** matrix) {
-    int** cropped = new int*[28];
+long ** compress(long **matrix) {
+    long** cropped = new long*[28];
     for(int i = 0; i < 28; i++){
-        int* line = new int[23];
+        long* line = new long[23];
         for(int j = 0; j < 23; j++){
             //line[j] = (matrix[2*i][2*j] + matrix[2*i][2*j+1] + matrix[2*i+1][j] + matrix[2*i+1][2*j+1])/4;
             line[j] = 0;
@@ -226,8 +228,8 @@ int** compress(int** matrix) {
     return cropped;
 }
 
-int calc_difference_compress(int** m1, int** m2){
-    int res = 0;
+long calc_difference_compress(long **m1, long **m2){
+    long res = 0;
     for(int i = 0; i < 28; i++){
         for (int j = 0; j < 23; j++){
             res += abs(m1[i][j]-m2[i][j]);
@@ -236,9 +238,9 @@ int calc_difference_compress(int** m1, int** m2){
     return res;
 }
 
-int* get_result_compress(int*** matrix_base, int n, int s, int people){
-    int** cur = compress(picture_to_matrix_int(s, n));
-    int* result = new int[people];
+long * get_result_compress(long ***matrix_base, int n, int s, int people, pictures &pictures) {
+    long** cur = compress(pictures.get_picture(s, n));
+    long* result = new long[people];
     for(int i = 0; i < people; i++){
         result[i] = calc_difference_compress(matrix_base[i], cur);
     }
@@ -246,4 +248,17 @@ int* get_result_compress(int*** matrix_base, int n, int s, int people){
         delete [] cur[i];
     delete [] cur;
     return result;
+}
+double* combine_results(const long* v1, const long* v2, const long*v3, int people){
+    long v1_size = 0, v2_size = 0, v3_size = 0;
+    for (int i = 0; i < people; i++){
+        v1_size += v1[i];
+        v2_size += v2[i];
+        v3_size += v3[i];
+    }
+    auto* res = new double[people];
+    for (int i = 0; i < people; i++){
+        res[i] = (double (v1[i]) / v1_size * a + double (v2[i]) / v2_size * b + double (v3[i]) / v3_size * c);
+    }
+    return res;
 }

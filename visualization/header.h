@@ -5,32 +5,29 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <iostream>
 #include <cmath>
 #include <SFML/Graphics.hpp>
 #include <unistd.h>
+#include <vector>
 
 
 using namespace sf;
 using namespace std;
 
-/// Каждый метод имеет сходные фунуции
-/// make_base - создание "базы" по эталонам (приписка multi подчеркивает наличие двух эталонов)
+/// Каждый метод имеет сходные фунуции.<br>
+/// make_base - создание "базы" по эталонам (приписка multi подчеркивает наличие нескольких эталонов)<br>
 /// get_result - сравнение тестового изображения с каждым в базе,
-/// и получение вектора состоящего из "отличий" от каждого эталона
+/// и получение вектора состоящего из "отличий" от каждого эталона.<br>
 
 
-/// check_ans - выбор минимального "отличия" в качестве "ответа"
-/// calculate_difference - сумма модулей покомпонентных разностей двух векторов
-/// get_acc - получение точности
+/// check_ans - выбор минимального "отличия" в качестве "ответа".<br>
+/// calculate_difference - сумма модулей покомпонентных разностей двух векторов.<br>
+/// get_acc_w, get_acc - получение точности.<br><br>
 
+/// Common methods
 
-
-
-//// Common
-
-int** picture_to_matrix_int(int s, int n);    ///  int matrix -> long matrix
-long ** picture_to_matrix_long(int s, int n); /// .pgm to matrix
+int** picture_to_matrix_int(int s, int n);    ///  int matrix from .pgm
+long **int_to_long_matrix(int** &matrix);     /// int to long matrix
 template <typename T>
 T calculate_difference(T* first, T* second, int len) {
     T diff = 0;
@@ -51,40 +48,72 @@ void delete_matrix(T** matrix) {
 template <typename T>
 int check_ans_int(const T *res, int people){
     T min = res[0];
-    int index = 1;
+    int index = 0;
     for(int i = 1; i < people; i++){
         if (min > res[i]) {
             min = res[i];
-            index = i + 1;
+            index = i;
         }
     }
     return index;
 }
 
-float get_acc(int mistakes, int people, int pb); /// pb - количество эталонов
-wstring get_acc(int count, int mistakes);
+float get_acc(int mistakes, int count); /// Точность числом
 
-/// Hist            /// prec - параметр определящиюй количество групп, prec = 256 / {количество групп}
+wstring get_acc_w(int count, int mistakes); /// Точнось строкой (для вывода в приложении)
+
+struct pictures{
+    int people;
+    long**** pictures_long;
+    explicit pictures(int _people) : people(_people) {
+        long**** all_pictures_long = new long ***[people];
+        for(int s = 1; s <= people; s++){
+            auto temp_long = new long**[10];
+            for(int n = 1; n <= 10; n++){
+                auto int_matrix = picture_to_matrix_int(s, n);
+                temp_long[n - 1] = int_to_long_matrix(int_matrix);
+                delete_matrix(int_matrix);
+            }
+            all_pictures_long[s - 1] = temp_long;
+        }
+        pictures_long = all_pictures_long;
+    }
+    ~pictures(){
+        for(int i = 0; i < people; i++){
+            for(int j = 0; j < 10; j++){
+                delete_matrix(pictures_long[i][j]);
+            }
+            delete [] pictures_long[i];
+        }
+        delete [] pictures_long;
+    }
+    [[nodiscard]] long** get_picture(int s, int n) const{
+        return pictures_long[s - 1][n - 1];
+    }
+}; /// Структура хранящая изображения
+
+
+
+
+/// Hist            /// prec (precision) - параметр определящиюй количество групп, prec = 256 / {количество групп}
 long * return_hist_v2(long **picture, int prec); /// Гистограмма из матрицы (улучшенный метод)
 
-long* get_result_hist(long** base, int n, int s, int people, int prec);
+long* get_result_hist(long** base, int n, int s, int people, int prec, pictures& pictures);
 
-long ** make_multibase_hist(int people, int prec, int n1, int n2); /// n1, n2 номера изображений - эталонов
+long **make_multibase_hist(int people, int prec, pictures &pictures, vector<int> &exemplars); /// n1, n2 номера изображений - эталонов
 
-/// Pixels
-
-/// Pixels       /// nop (number of pixels) - количество случайных пикселей
+/// Pixels <br> nop (number of pixels) - количество случайных пикселей
 pair<int, int>* choose_pixels(int num); /// Выбор случайных пикселей
-int* extract_vector_of_chosen_pixels(int** matrix, pair<int, int>* pixels, int len); /// Вектор по выбранным пикселям
-int** make_multibase_pixels(int people, pair<int, int>*pixels, int nop, int n1, int n2);
-int* get_result_pixels (int** base, pair<int,int>*pixels, int people, int nop, int s, int n);
+long * extract_vector_of_chosen_pixels(long **matrix, pair<int, int>* pixels, int len); /// Вектор по выбранным пикселям
+long ** make_multibase_pixels(int people, pair<int, int> *pixels, int nop, pictures &pictures, vector<int> &exemplars);
+long * get_result_pixels(long **base, pair<int, int> *pixels, int people, int nop, int s, int n, pictures &pictures);
 
 /// Compress
 
-int** compress(int** matrix); /// Сжатие матрицы х16
-int*** make_multibase_compress(int people, int n1, int n2);
-int calc_difference_compress(int** m1, int** m2);
-int* get_result_compress(int*** matrix_base, int n, int s, int people);
+long ** compress(long **matrix); /// Сжатие матрицы х16
+long *** make_multibase_compress(int people, pictures &pictures, vector<int> &exemplars);
+long calc_difference_compress(long **m1, long **m2);
+long * get_result_compress(long ***matrix_base, int n, int s, int people, pictures &pictures);
 
 
 
@@ -128,24 +157,24 @@ struct Screen /// Структура из отображаемых объект�
         window.draw(vote_text);
     }
 
-    void setTest(const Sprite test) {
-        Screen::test = test;
+    void setTest(const Sprite& _test) {
+        Screen::test = _test;
     }
 
-    void setHist(const Sprite hist) {
-        Screen::hist = hist;
+    void setHist(const Sprite& _hist) {
+        Screen::hist = _hist;
     }
 
-    void setPixels(const Sprite pixels) {
-        Screen::pixels = pixels;
+    void setPixels(const Sprite& _pixels) {
+        Screen::pixels = _pixels;
     }
 
-    void setVote(const Sprite vote) {
-        Screen::vote = vote;
+    void setVote(const Sprite& _vote) {
+        Screen::vote = _vote;
     }
 
-    void setCompress(const Sprite compress) {
-        Screen::compress = compress;
+    void setCompress(const Sprite& _compress) {
+        Screen::compress = _compress;
     }
 
     void setTestText(const wstring& text) {
@@ -188,6 +217,8 @@ struct Screen /// Структура из отображаемых объект�
     }
 };
 
+double* combine_results(const long* v1, const long* v2, const long*v3, int people);
+void set(int _a, int _b, int _c);
 Sprite get_sprite(int s, int n); /// Получение спрайта из требуемого изображения
 
 void fill_textures(); /// Заполнить текстурами массив
