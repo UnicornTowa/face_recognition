@@ -1,321 +1,160 @@
 #include "header.h"
 
 int main() {
+    /// Создание окна и фона
+    RenderWindow window(VideoMode(1010, 880), "Face recognition");
+    RectangleShape background(Vector2f(1010.0f,900.0f));
+    background.setFillColor(sf::Color::White);
+    window.setFramerateLimit(60);
+    Event event{};
 
-// COMBINED METHODS PIXELS PREF
- /*   for(int nop = 200; nop <= 700; nop+=150) {
-        auto pixels = choose_pixels(nop);
-        auto base_pixels = make_base_pixels(people, pixels, nop, 1);
-        for(int prec = 16; prec >= 4; prec/=2) {
-            int mistakes = 0;
-            int async = 0;
-            auto base_hist = make_base_hist(people, prec, 1);
-            for (int s = 1; s <= people; s++) {
-                for (int n = 2; n <= 10; n++) {
-                    int ans = combine_results(return_3(get_result_ndp(base_pixels, pixels, people, nop, s, n), people),
-                                              return_3_hist(get_result_hist(base_hist, n, s, people, prec), people));
-                    if (ans != s){
-                        mistakes++;
-                        if(ans == 0)
-                            async++;
-                    }
 
-                }
+    const int people = 40;  /// Общие параметры
+    vector<int> exemplars = {1}; /// Вектор из номеров эталонов
+    int num_of_exemplars = int(exemplars.size());
+    int s = 1; /// Здесь и далее s - порядковый номер субъекта в базе
+    int n = 0;/// Здесь и далее n - номер изображения конкретного субъекта
+    int count = 0;
+
+    pictures pictures_data = pictures(people); /// Структура хранящая изображения
+
+    /// Параметры каждого метода
+    auto hist_groups = 128;
+    auto base_hist = make_multibase_hist(people, 256 / hist_groups, pictures_data, exemplars);
+    int mistakes_hist = 0;
+
+    auto num_of_pixels = 400;
+    auto pixels = choose_pixels(num_of_pixels);
+    auto base_pixels = make_multibase_pixels(people, pixels, num_of_pixels, pictures_data, exemplars);
+    int mistakes_pixels = 0;
+
+
+    pair<int, int> scale_factor = {4, 4};
+    auto base_compress = make_multibase_compress(people, pictures_data, exemplars, scale_factor);
+    int mistakes_compress = 0;
+
+    set(1, 1, 1); /// веса для голосования
+
+    int mistakes_vote = 0;
+
+    /// Вспомогательные параметры и объекты
+
+    Screen screen = Screen();
+    fill_textures();
+
+    int ans_hist, ans_hist_s, ans_hist_n;
+    int ans_pixels, ans_pixels_s, ans_pixels_n;
+    int ans_compress, ans_compress_s, ans_compress_n;
+    int ans_vote_s, ans_vote_n;
+    long *vector_hist, *vector_pixels, *vector_compress;
+    while (window.isOpen()) /// Основой цикл
+    {
+        { /// Обновление параметров
+            count++;
+            n++;
+            if (n == 11) {
+                s++;
+                n = 1;
             }
-            float acc = round(100 * (9*people - static_cast<float>(mistakes)) / 9 / people * 100) / 100;
-            cout << "For " << nop << " pixels and " << 256/prec << " groups accuracy is " << acc << "%, async " << async << endl;
-            for (int i = 0; i < people; i++) {
-                delete [] base_hist[i];
+            if (s == 1 + people) {
+                count--;
+                break;
             }
-            delete [] base_hist;
         }
-            for (int i = 0; i < people; i++) {
-                delete[] base_pixels[i];
-            }
-            delete[] base_pixels;
-            delete[] pixels;
-    }*/
 
-// COMPRESS
-/*
-    auto base = make_base_compress(people, 1);
-    int mistakes = 0;
-    for (int s = 1; s <= people; s++) {
-        for (int n = 2; n <= 10; n++) {
-            if (!check_ans_bool(get_result_compress(base, n, s, people), people, s))
-                mistakes++;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) window.close();
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::Escape)
+                    window.close();
+            }
         }
+
+        if (find(exemplars.begin(), exemplars.end(), n) != exemplars.end()) {
+            count--;
+            continue;
+        }
+
+        screen.setTest(get_sprite(s, n));
+        screen.setTestText(
+                L"   Тестовое изображение\n  Субъект " + to_wstring(s) + L" изображение " + to_wstring(n));
+        //cout << "TEST: s = " << s << " n = " << n << "*" << endl;
+        { /// Histogram
+            vector_hist = get_result_hist(base_hist, n, s, num_of_exemplars * people, 256 / hist_groups,
+                                          pictures_data);
+            ans_hist = check_ans_int(vector_hist, num_of_exemplars * people);
+            ans_hist_s = 1 + ans_hist % people;
+            ans_hist_n = exemplars[ans_hist / people];
+            screen.setHist(get_sprite(ans_hist_s, ans_hist_n));
+            if (ans_hist_s != s)
+                mistakes_hist++;
+            //cout << "Hist: s = " << ans_hist_s << " n = " << ans_hist_n << endl;
+            screen.setHistText(
+                    L"      Метод гистограмм\n Текущая точность " + get_acc_w(count, mistakes_hist) + L"%");
+        }
+        { /// Pixels
+            vector_pixels = get_result_pixels(base_pixels, pixels, num_of_exemplars * people, num_of_pixels, s, n,
+                                              pictures_data);
+            ans_pixels = check_ans_int(vector_pixels, num_of_exemplars * people);
+            ans_pixels_s = 1 + ans_pixels % people;
+            ans_pixels_n = exemplars[ans_pixels / people];
+            screen.setPixels(get_sprite(ans_pixels_s, ans_pixels_n));
+            if (ans_pixels_s != s)
+                mistakes_pixels++;
+            //cout << "Pixels: s = " << ans_pixels_s << " n = " << ans_pixels_n << endl;
+            screen.setPixelsText(
+                    L"     Случайные пиксели\nТекущая точность " + get_acc_w(count, mistakes_pixels) +
+                    L"%");
+        }
+        { /// Compress
+            vector_compress = get_result_compress(base_compress, n, s, num_of_exemplars * people,
+                                                  pictures_data, scale_factor);
+            ans_compress = check_ans_int(vector_compress, num_of_exemplars * people);
+            ans_compress_s = 1 + ans_compress % people;
+            ans_compress_n = exemplars[ans_compress / people];
+            screen.setCompress(get_sprite(ans_compress_s, ans_compress_n));
+            if (ans_compress_s != s)
+                mistakes_compress++;
+            //cout << "Compress: s = " << ans_compress_s << " n = " << ans_compress_n << endl;
+            screen.setCompressText(
+                    L"  Сжатие изображения\nТекущая точность " + get_acc_w(count, mistakes_compress) +
+                    L"%");
+        }
+        {/// Vote 2
+
+            auto vector_vote = combine_results(vector_hist, vector_pixels, vector_compress,
+                                               num_of_exemplars * people);
+            auto ans_vote = check_ans_int(vector_vote, num_of_exemplars * people);
+            ans_vote_s = 1 + ans_vote % people;
+            ans_vote_n = exemplars[ans_vote / people];
+            screen.setVote(get_sprite(ans_vote_s, ans_vote_n));
+            if (ans_vote_s != s)
+                mistakes_vote++;
+            screen.setVoteText(
+                    L"          Голосование\nТекущая точность " + get_acc_w(count, mistakes_vote) + L"%");
+        }
+        window.clear();
+        window.draw(background);
+        screen.update_window(window);
+        window.display();
+        //usleep(300000); /// Задержка (мкс)
     }
-    float acc = round(100 * (9*people - static_cast<float>(mistakes)) / 9 / people * 100) / 100;
-    cout << "Accuracy is " << acc << "% " << endl;
-    for (int i = 0; i < people; i++) {
-        for ( int j = 0; j < 28; j++)
-            delete [] base[i][j];
-        delete [] base[i];
+    cout << get_acc(mistakes_hist, count) << " " << get_acc(mistakes_pixels, count) << " "
+    << get_acc(mistakes_compress, count) << endl;
+    { /// Memory clean
+        for (int i = 0; i < num_of_exemplars * people; i++) {
+            delete[] base_hist[i];
+            delete[] base_pixels[i];
+            for (int j = 0; j < 28; j++) {
+                delete[] base_compress[i][j];
+            }
+            delete[] base_compress[i];
+        }
+        delete[] pixels;
+        delete[] base_hist;
+        delete[] base_pixels;
+        delete[] base_compress;
     }
-    delete [] base;
+
     return 0;
-*/
-
-// MIX
-/*
-int nop = 500;
-auto pixels = choose_pixels(nop);
-auto base_pixels = add_bases(make_base(people, pixels, nop, 1), make_base_pixels(people, pixels, nop, 5), nop, people);
-auto base_matrix = make_base_compress(people, 1);
-int mistakes = 0;
-for (int s = 1; s <= people; s++) {
-    for (int n = 3; n <= 10; n++) {
-        if (n == 5)
-            n = 2;
-        int* res = return_3(get_result_compress(base_matrix, n, s, people), people);
-        int** afterbase = new int*[3];
-        for(int i = 0; i < 3; i++) {
-            afterbase[i] = base_pixels[res[i] - 1];
-        }
-        if(res[check_ans_int(get_result_ndp(afterbase, pixels, 3, nop, s, n), 3) - 1] != s)
-            mistakes++;
-        //for(int i = 0; i < 3; i++) {
-        //    cout << afterbase[i][0];
-        //    delete[] afterbase[i];
-        //}
-        delete [] afterbase;
-        delete [] res;
-        if ( n == 2)
-            n = 5;
-    }
-}
-float acc = round(100 * (8*people - static_cast<float>(mistakes)) / 8 / people * 100) / 100;
-cout << "Accuracy is " << acc << "% " << endl;
-for (int i = 0; i < people; i++) {
-    delete [] base_pixels[i];
-    for ( int j = 0; j < 28; j++)
-        delete [] base_matrix[i][j];
-    delete [] base_matrix[i];
-}
-delete [] base_pixels;
-delete [] base_matrix;
-delete [] pixels;
-    */
-
-// X3 PIX
-/*
-for(int nop = 50; nop <= 1000; nop+=50){
-    int mistakes = 0;
-    auto pixels = choose_pixels(nop);
-    auto base = add_bases_3(make_base(people, pixels, nop, 1), make_base(people, pixels, nop, 5), make_base_pixels(people, pixels, nop, 8), nop, people);
-    for(int s = 1; s <= people; s++){
-        for(int n = 4; n <= 10; n++){
-            if (n == 8)
-                n = 3;
-            if (n == 5)
-                n = 2;
-            if(!check_ans_bool(get_result_ndp(base, pixels, people, nop, s, n), people, s))
-                mistakes++;
-            if (n == 2)
-                n = 5;
-            if (n == 3)
-                n = 8;
-        }
-    }
-    //cout << get_acc(mistakes, people, 3) << endl;
-    cout << "For " << nop << " pixels accuracy is " << get_acc(mistakes, people, 3) << "%" << endl;
-    for (int i = 0; i < people; i++) {
-        delete [] base[i];
-    }
-    delete [] base;
-    delete [] pixels;
-}
-*/
-
-// TEST (intersection of different methods best N candidates
-/*
-    int nop = 500;
-    int prec = 256/32;
-    auto pixels = choose_pixels(nop);
-    auto base_pixels = add_bases(make_base(people, pixels, nop, 1), make_base_pixels(people, pixels, nop, 2), nop, people);
-    auto base_matrix = make_base_compress(people, 1);
-    auto base_hist = make_base_hist(people, prec, 1);
-    int mistakes = 0;
-    for (int s = 1; s <= people; s++) {
-        for (int n = 3; n <= 10; n++) {
-            //if (n == 5)
-            //    n = 2;
-            int* res_p = return_n(get_result_ndp(base_pixels, pixels, people, nop, s, n), 5, people);
-            int* res_m = return_n(get_result_compress(base_matrix, n, s, people), 5, people);
-            int* res_h = return_n(get_result_hist(base_hist, n, s, people, prec), 5, people);
-
-            auto res = intersect(res_p, res_m, res_h);
-            cout << res.second;
-            if (res.second == 0)
-                mistakes++;
-            for(int i = 0; i < res.second; i++){
-                if (res.first[i] == s)
-                    break;
-                if (i == res.second - 1)
-                    mistakes++;
-            }
-            delete [] res.first;
-            delete [] res_m;
-            delete [] res_p;
-            delete [] res_h;
-            //if (n == 2)
-            //    n = 5;
-        }
-    }
-    float acc = round(100 * (8 * people - static_cast<float>(mistakes)) / 8 / people * 100) / 100;
-    cout << "Accuracy is " << acc << "% " << endl;
-    for (int i = 0; i < people; i++) {
-        delete[] base_pixels[i];
-        for (int j = 0; j < 28; j++)
-            delete[] base_matrix[i][j];
-        delete[] base_matrix[i];
-    }
-    delete[] base_pixels;
-    delete[] base_matrix;
-    delete[] pixels;
-
-    */
-
-// ANGLES
-/*
-for(int nop = 50; nop <= 1000; nop+=50){
-    int mistakes = 0;
-    auto pixels = choose_pixels(nop);
-    auto base = make_base_angle(people, pixels, nop, 1);
-    for(int s = 1; s <= people; s++){
-        for(int n = 2; n <= 10; n++){
-            if(!check_ans_bool_angle(get_result_ndp_angle(base, pixels, people, nop, s, n), people, s))
-                mistakes++;
-        }
-    }
-    cout << get_acc(mistakes, people, 1) << endl;
-    //cout << "For " << nop << " pixels accuracy is " << get_acc(mistakes, people, 1) << "%" << endl;
-    for (int i = 0; i < people; i++) {
-        delete [] base[i];
-    }
-    delete [] base;
-    delete [] pixels;
-}
-*/
-// ANGLES X2
-/*
-for(int nop = 50; nop <= 1000; nop+=50){
-    int mistakes = 0;
-    auto pixels = choose_pixels(nop);
-    auto base = add_bases(make_base_angle(people, pixels, nop, 1), make_base_angle(people, pixels, nop, 5), nop, people);
-    for(int s = 1; s <= people; s++){
-        for(int n = 3; n <= 10; n++){
-            if (n == 5)
-                n = 2;
-            if(!check_ans_bool_angle(get_result_ndp_angle(base, pixels, people, nop, s, n), people, s))
-                mistakes++;
-            if (n == 2)
-                n = 5;
-        }
-    }
-    cout << get_acc(mistakes, people, 2) << endl;
-    //cout << "For " << nop << " pixels accuracy is " << get_acc(mistakes, people, 1) << "%" << endl;
-    for (int i = 0; i < people; i++) {
-        delete [] base[i];
-    }
-    delete [] base;
-    delete [] pixels;
-}
-*/
-
-// Trying different median
-/*
-for(int nop = 50; nop <= 1000; nop+=50){
-    int mistakes = 0;
-    auto pixels = choose_pixels(nop);
-    auto base = make_base_pixels(people, pixels, nop, 1);
-    for(int s = 1; s <= people; s++){
-        for(int n = 2; n <= 10; n++){
-            if(!check_ans_bool(get_result_ndp_v2(base, pixels, people, nop, s, n), people, s))
-                mistakes++;
-        }
-    }
-    cout << get_acc(mistakes, people, 1) << " ";
-    //cout << "For " << nop << " pixels accuracy is " << get_acc(mistakes, people, 3) << "%" << endl;
-    for (int i = 0; i < people; i++) {
-        delete [] base[i];
-    }
-    delete [] base;
-    delete [] pixels;
-}
-*/
-
-
-// NEW HIST BASE = PEOPLE*2 + 16HIST FOR PIC
-
-auto people = 40;
-for(int precision = 256/32; precision >= 256/32; precision/=2) { // 64 to 2
-    int mistakes = 0;
-    auto base = make_multibase_hist(people, precision, 3, 8);
-    for (int s = 1; s <= people; s++) {
-        for (int n = 1; n <= 10; n++) {
-            if (n == 3 or n == 8)
-                continue;
-            if (check_ans_int(get_result_hist(base, n, s, people * 2, precision), 2 * people) != s) {
-                //cout << "s = " << s << " n = " << n << " but found " << check_ans_int(
-                //        get_result_hist(base, n, s, people, precision), people) << endl;
-                mistakes++;
-            }
-        }
-    }
-    float acc = get_acc(mistakes, people, 2);
-    cout << "For " << 256 / precision << " groups " << acc << "%" << endl;
-    for (int i = 0; i < people; i++) {
-        delete[] base[i];
-    }
-    delete[] base;
-}
-
-
-
-
-
-    /*for(int precision = 64; precision >= 2; precision/=2){ // 64 to 2
-        int mistakes = 0;
-        auto base = make_multibase_hist(people, precision, 1, 1);
-        for(int s = 1; s <= people; s++){
-            for(int n = 1; n <= 10; n++){
-                if (n == 1 or n == 1)
-                    continue;
-                if(check_ans_int(get_result_hist(base, n, s, people*2, precision), 2 * people) != s) {
-                    //cout << "s = " << s << " n = " << n << " but found " << check_ans_int(
-                    //        get_result_hist(base, n, s, people, precision), people) << endl;
-                    mistakes++;
-                }
-            }
-        }
-        float acc = get_acc(mistakes, people, 1);
-        cout << "For " << 256 / precision << " groups " << acc << "%" << endl;
-        for (int i = 0; i < people; i++) {
-            delete [] base[i];
-        }
-        delete [] base;
-    }*/
-
-//RANDOM PIX, BASE = 2*people
-/*
-for(int nop = 50; nop <= 1000; nop += 50){
-    auto pixels = choose_pixels(nop);
-    auto base = make_multibase_pixels(people, pixels, nop, 1, 1);
-    int mistakes = 0;
-    for (int s = 1; s <= people; s++){
-        for (int n = 1; n <= 10; n++){
-            if (n == 1 or n == 1)
-                continue;
-            if (check_ans_int(get_result_ndp(base, pixels, 2*people, nop, s, n), 2*people) != s)
-                mistakes++;
-        }
-    }
-    cout << "for nop = " << nop << " got acc = " << get_acc(mistakes, people, 2) << endl;
-}
-*/
-
-
-
 }
