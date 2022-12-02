@@ -110,10 +110,10 @@ long * get_result_pixels(long **base, pair<int, int> *pixels, int people, int no
 
 /// Compress
 
-long ** compress(long **matrix); /// Сжатие матрицы х16
-long *** make_multibase_compress(int people, pictures &pictures, vector<int> &exemplars);
-long calc_difference_compress(long **m1, long **m2);
-long * get_result_compress(long ***matrix_base, int n, int s, int people, pictures &pictures);
+long ** compress(long **matrix, pair<int, int> scale_factor); /// Сжатие матрицы х16
+long *** make_multibase_compress(int people, pictures &pictures, vector<int> &exemplars, pair<int, int> scale_factor);
+long calc_difference_compress(long **m1, long **m2, pair<int, int> scale_factor);
+long * get_result_compress(long ***matrix_base, int n, int s, int people, pictures &pictures, pair<int, int> scale_factor);
 
 
 

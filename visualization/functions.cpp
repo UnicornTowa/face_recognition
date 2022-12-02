@@ -200,27 +200,29 @@ long * get_result_pixels(long **base, pair<int, int> *pixels, int people, int no
 
 /// Compress
 
-long *** make_multibase_compress(int people, pictures &pictures, vector<int> &exemplars) {
+long *** make_multibase_compress(int people, pictures &pictures, vector<int> &exemplars, pair<int, int> scale_factor) {
     auto num_of_exemplars = exemplars.size();
     long*** base_matrix = new long**[num_of_exemplars*people];
     for(int q = 0; q < num_of_exemplars; q++){
         for(int i = 0; i < people; i++){
-            base_matrix[i + q * people] = compress(pictures.get_picture(i + 1, exemplars[q]));
+            base_matrix[i + q * people] = compress(pictures.get_picture(i + 1, exemplars[q]), scale_factor);
         }
     }
     return base_matrix;
 }
 
-long ** compress(long **matrix) {
-    long** cropped = new long*[28];
-    for(int i = 0; i < 28; i++){
-        long* line = new long[23];
-        for(int j = 0; j < 23; j++){
+long ** compress(long **matrix, pair<int, int> scale_factor) {
+    int length = 112 / scale_factor.first;
+    int width = 92 / scale_factor.second;
+    long** cropped = new long*[length];
+    for(int i = 0; i < length; i++){
+        long* line = new long[width];
+        for(int j = 0; j < width; j++){
             //line[j] = (matrix[2*i][2*j] + matrix[2*i][2*j+1] + matrix[2*i+1][j] + matrix[2*i+1][2*j+1])/4;
             line[j] = 0;
-            for (int k = 0; k < 4; k++){
-                for (int l = 0; l < 4; l++)
-                    line[j] += matrix[4*i+k][4*j+l];
+            for (int k = 0; k < scale_factor.first; k++){
+                for (int l = 0; l < scale_factor.second; l++)
+                    line[j] += matrix[scale_factor.first*i+k][scale_factor.second*j+l];
             }
         }
         cropped[i] = line;
@@ -228,27 +230,30 @@ long ** compress(long **matrix) {
     return cropped;
 }
 
-long calc_difference_compress(long **m1, long **m2){
+long calc_difference_compress(long **m1, long **m2, pair<int, int> scale_factor){
     long res = 0;
-    for(int i = 0; i < 28; i++){
-        for (int j = 0; j < 23; j++){
+    for(int i = 0; i < 112 / scale_factor.first; i++){
+        for (int j = 0; j < 92 / scale_factor.second; j++){
             res += abs(m1[i][j]-m2[i][j]);
         }
     }
     return res;
 }
 
-long * get_result_compress(long ***matrix_base, int n, int s, int people, pictures &pictures) {
-    long** cur = compress(pictures.get_picture(s, n));
+long * get_result_compress(long ***matrix_base, int n, int s, int people, pictures &pictures, pair<int, int> scale_factor) {
+    long** cur = compress(pictures.get_picture(s, n), scale_factor);
     long* result = new long[people];
     for(int i = 0; i < people; i++){
-        result[i] = calc_difference_compress(matrix_base[i], cur);
+        result[i] = calc_difference_compress(matrix_base[i], cur, scale_factor);
     }
-    for(int i = 0; i < 28; i++)
+    for(int i = 0; i < 112 / scale_factor.first; i++)
         delete [] cur[i];
     delete [] cur;
     return result;
 }
+
+
+
 double* combine_results(const long* v1, const long* v2, const long*v3, int people){
     long v1_size = 0, v2_size = 0, v3_size = 0;
     for (int i = 0; i < people; i++){

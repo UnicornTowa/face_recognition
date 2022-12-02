@@ -10,7 +10,7 @@ int main() {
 
 
     const int people = 40;  /// Общие параметры
-    vector<int> exemplars = {3,6,5,9}; /// Вектор из номеров эталонов
+    vector<int> exemplars = {1}; /// Вектор из номеров эталонов
     int num_of_exemplars = int(exemplars.size());
     int s = 1; /// Здесь и далее s - порядковый номер субъекта в базе
     int n = 0;/// Здесь и далее n - номер изображения конкретного субъекта
@@ -19,15 +19,18 @@ int main() {
     pictures pictures_data = pictures(people); /// Структура хранящая изображения
 
     /// Параметры каждого метода
-    auto base_hist = make_multibase_hist(people, 256 / 64, pictures_data, exemplars);
+    auto hist_groups = 128;
+    auto base_hist = make_multibase_hist(people, 256 / hist_groups, pictures_data, exemplars);
     int mistakes_hist = 0;
 
-    auto pixels = choose_pixels(550);
-    auto base_pixels = make_multibase_pixels(people, pixels, 550, pictures_data, exemplars);
+    auto num_of_pixels = 400;
+    auto pixels = choose_pixels(num_of_pixels);
+    auto base_pixels = make_multibase_pixels(people, pixels, num_of_pixels, pictures_data, exemplars);
     int mistakes_pixels = 0;
 
 
-    auto base_compress = make_multibase_compress(people, pictures_data, exemplars);
+    pair<int, int> scale_factor = {4, 4};
+    auto base_compress = make_multibase_compress(people, pictures_data, exemplars, scale_factor);
     int mistakes_compress = 0;
 
     set(1, 1, 1); /// веса для голосования
@@ -77,7 +80,7 @@ int main() {
                 L"   Тестовое изображение\n  Субъект " + to_wstring(s) + L" изображение " + to_wstring(n));
         //cout << "TEST: s = " << s << " n = " << n << "*" << endl;
         { /// Histogram
-            vector_hist = get_result_hist(base_hist, n, s, num_of_exemplars * people, 256 / 64,
+            vector_hist = get_result_hist(base_hist, n, s, num_of_exemplars * people, 256 / hist_groups,
                                           pictures_data);
             ans_hist = check_ans_int(vector_hist, num_of_exemplars * people);
             ans_hist_s = 1 + ans_hist % people;
@@ -90,7 +93,7 @@ int main() {
                     L"      Метод гистограмм\n Текущая точность " + get_acc_w(count, mistakes_hist) + L"%");
         }
         { /// Pixels
-            vector_pixels = get_result_pixels(base_pixels, pixels, num_of_exemplars * people, 550, s, n,
+            vector_pixels = get_result_pixels(base_pixels, pixels, num_of_exemplars * people, num_of_pixels, s, n,
                                               pictures_data);
             ans_pixels = check_ans_int(vector_pixels, num_of_exemplars * people);
             ans_pixels_s = 1 + ans_pixels % people;
@@ -105,7 +108,7 @@ int main() {
         }
         { /// Compress
             vector_compress = get_result_compress(base_compress, n, s, num_of_exemplars * people,
-                                                  pictures_data);
+                                                  pictures_data, scale_factor);
             ans_compress = check_ans_int(vector_compress, num_of_exemplars * people);
             ans_compress_s = 1 + ans_compress % people;
             ans_compress_n = exemplars[ans_compress / people];
@@ -117,22 +120,7 @@ int main() {
                     L"  Сжатие изображения\nТекущая точность " + get_acc_w(count, mistakes_compress) +
                     L"%");
         }
-//        { /// Vote
-//            if (ans_pixels_s == ans_compress_s) {
-//                ans_vote_s = ans_pixels_s;
-//                ans_vote_n = ans_pixels_n;
-//            } else {
-//                ans_vote_s = ans_hist_s;
-//                ans_vote_n = ans_hist_n;
-//            }
-//            screen.setVote(get_sprite(ans_vote_s, ans_vote_n));
-//            if (ans_vote_s != s)
-//                mistakes_vote++;
-//            screen.setVoteText(
-//                    L"          Голосование\nТекущая точность " + get_acc_w(count, mistakes_vote) + L"%");
-//        }
         {/// Vote 2
-            //set(13, 3, 3);
 
             auto vector_vote = combine_results(vector_hist, vector_pixels, vector_compress,
                                                num_of_exemplars * people);
@@ -151,13 +139,8 @@ int main() {
         window.display();
         //usleep(300000); /// Задержка (мкс)
     }
-//    cout << get_acc(mistakes_hist, count) << " " << get_acc(mistakes_pixels, count) << " "
-//    << get_acc(mistakes_compress, count) << " " << get_acc(mistakes_vote, count) << endl;
-    cout << "Финальная точность: " << endl<<
-         "Гистограммы " << get_acc(mistakes_hist, count) << "%" << endl <<
-         "Пиксели " << get_acc(mistakes_pixels, count) << "%" << endl <<
-         "Сжатие " << get_acc(mistakes_compress, count) << "%" << endl <<
-         "Голосование " << get_acc(mistakes_vote, count) << "%" << endl;
+    cout << get_acc(mistakes_hist, count) << " " << get_acc(mistakes_pixels, count) << " "
+    << get_acc(mistakes_compress, count) << endl;
     { /// Memory clean
         for (int i = 0; i < num_of_exemplars * people; i++) {
             delete[] base_hist[i];
