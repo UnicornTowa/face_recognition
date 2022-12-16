@@ -62,10 +62,14 @@ float get_acc(int mistakes, int count); /// Точность числом
 
 wstring get_acc_w(int count, int mistakes); /// Точнось строкой (для вывода в приложении)
 
+
+long * return_hist_v2(long **picture, int prec); /// Гистограмма из матрицы (улучшенный метод) (объявлена тут т.к. нужна ниже)
 struct pictures{
     int people;
     long**** pictures_long;
-    explicit pictures(int _people) : people(_people) {
+    int prec;
+    long*** hists;
+    explicit pictures(int _people, int _prec) : people(_people), prec(_prec) {
         long**** all_pictures_long = new long ***[people];
         for(int s = 1; s <= people; s++){
             auto temp_long = new long**[10];
@@ -77,6 +81,14 @@ struct pictures{
             all_pictures_long[s - 1] = temp_long;
         }
         pictures_long = all_pictures_long;
+        hists = new long**[people];
+        for(int s = 1; s <= people; s++){
+            auto hists_n = new long*[10];
+            for (int n = 1; n <= 10; n++){
+                hists_n[n - 1] = return_hist_v2(get_picture(s, n), prec);
+            }
+            hists[s - 1] = hists_n;
+        }
     }
     ~pictures(){
         for(int i = 0; i < people; i++){
@@ -90,13 +102,16 @@ struct pictures{
     [[nodiscard]] long** get_picture(int s, int n) const{
         return pictures_long[s - 1][n - 1];
     }
+    [[nodiscard]] long* get_hist(int s, int n) const{
+        return hists[s - 1][n - 1];
+    }
 }; /// Структура хранящая изображения
 
 
 
 
 /// Hist            /// prec (precision) - параметр определящиюй количество групп, prec = 256 / {количество групп}
-long * return_hist_v2(long **picture, int prec); /// Гистограмма из матрицы (улучшенный метод)
+
 
 long* get_result_hist(long** base, int n, int s, int people, int prec, pictures& pictures);
 
@@ -160,58 +175,48 @@ struct Screen /// Структура из отображаемых объект�
     void setTest(const Sprite& _test) {
         Screen::test = _test;
     }
-
     void setHist(const Sprite& _hist) {
         Screen::hist = _hist;
     }
-
     void setPixels(const Sprite& _pixels) {
         Screen::pixels = _pixels;
     }
-
     void setVote(const Sprite& _vote) {
         Screen::vote = _vote;
     }
-
     void setCompress(const Sprite& _compress) {
         Screen::compress = _compress;
     }
-
     void setTestText(const wstring& text) {
         test_text.setFont(font);
         test_text.setString(text);
         test_text.setCharacterSize(27);
         test_text.setFillColor(Color::Black);
     }
-
     void setHistText(const wstring& text) {
         hist_text.setFont(font);
         hist_text.setString(text);
         hist_text.setCharacterSize(27);
         hist_text.setFillColor(Color::Black);
     }
-
     void setPixelsText(const wstring& text) {
         pixels_text.setFont(font);
         pixels_text.setString(text);
         pixels_text.setCharacterSize(27);
         pixels_text.setFillColor(Color::Black);
     }
-
     void setCompressText(const wstring& text) {
         compress_text.setFont(font);
         compress_text.setString(text);
         compress_text.setCharacterSize(27);
         compress_text.setFillColor(Color::Black);
     }
-
     void setVoteText(const wstring& text) {
         vote_text.setFont(font);
         vote_text.setString(text);
         vote_text.setCharacterSize(27);
         vote_text.setFillColor(Color::Black);
     }
-
     Screen(){
         font.loadFromFile("myfont.ttf");
     }

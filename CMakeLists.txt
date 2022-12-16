@@ -12,6 +12,6 @@ set(SFML_STATIC_LIBRARIES TRUE)
 find_package(SFML 2.5.1 COMPONENTS graphics REQUIRED)
 
 
-add_executable(face_rec_double main.cpp functions.cpp header.h sfml.cpp)
+add_executable(face_rec_double main.cpp functions.cpp header.h)
 
 target_link_libraries(face_rec_double sfml-graphics)

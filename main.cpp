@@ -10,16 +10,18 @@ int main() {
 
 
     const int people = 40;  /// Общие параметры
-    vector<int> exemplars = {1}; /// Вектор из номеров эталонов
+    vector<int> exemplars = {1,3,5,7,9}; /// Вектор из номеров эталонов
     int num_of_exemplars = int(exemplars.size());
     int s = 1; /// Здесь и далее s - порядковый номер субъекта в базе
     int n = 0;/// Здесь и далее n - номер изображения конкретного субъекта
     int count = 0;
 
-    pictures pictures_data = pictures(people); /// Структура хранящая изображения
 
-    /// Параметры каждого метода
+
+    /// Параметры методов
     auto hist_groups = 128;
+    pictures pictures_data = pictures(people, 256 / hist_groups); /// Структура хранящая изображения
+
     auto base_hist = make_multibase_hist(people, 256 / hist_groups, pictures_data, exemplars);
     int mistakes_hist = 0;
 
